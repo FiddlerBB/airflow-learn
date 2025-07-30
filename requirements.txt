@@ -1,0 +1,6 @@
+polars
+pandas
+requests
+httpx
+selectolax
+boto3
