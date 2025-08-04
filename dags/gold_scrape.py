@@ -12,6 +12,7 @@ from airflow import DAG
 from airflow.decorators import dag, task
 from datetime import datetime, timedelta
 import boto3
+import os
 
 logging.basicConfig(
     level=logging.INFO,
@@ -137,28 +138,28 @@ def gold_scrape():
         gold_crawler.parse_chart(html_data)
 
 
-    @task()
-    def assume_role():
-        sts_client = boto3.client("sts")
-        assumed_role = sts_client.assume_role(
-            RoleArn="arn:aws:iam::123456789012:role/MyCrossAccountRole",
-            RoleSessionName="airflow-session"
-        )
+    # @task()
+    # def assume_role():
+    #     sts_client = boto3.client("sts")
+    #     assumed_role = sts_client.assume_role(
+    #         RoleArn="arn:aws:iam::123456789012:role/MyCrossAccountRole",
+    #         RoleSessionName="airflow-session"
+    #     )
 
-        credentials = assumed_role["Credentials"]
-        return {
-            "aws_access_key_id": credentials["AccessKeyId"],
-            "aws_secret_access_key": credentials["SecretAccessKey"],
-            "aws_session_token": credentials["SessionToken"],
-        }
+    #     credentials = assumed_role["Credentials"]
+    #     return {
+    #         "aws_access_key_id": credentials["AccessKeyId"],
+    #         "aws_secret_access_key": credentials["SecretAccessKey"],
+    #         "aws_session_token": credentials["SessionToken"],
+    #     }
     
 
     @task()
-    def send_sns(gold_data, creds):
+    def send_sns(gold_data):
         session = boto3.Session(
-            aws_access_key_id=creds["aws_access_key_id"],
-            aws_secret_access_key=creds["aws_secret_access_key"],
-            aws_session_token=creds["aws_session_token"],
+            aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
+            region_name=os.environ.get('AWS_DEFAULT_REGION')
         )
 
         sns_client = session.client('sns', 'us-east-1')
@@ -174,8 +175,8 @@ def gold_scrape():
     gold_data = parse_gold_prices_task(html_data)
     print_gold_prices(gold_data)
     parse_chart(html_data)
-    creds = assume_role()
-    send_sns(gold_data, creds)
+    # creds = assume_role()
+    send_sns(gold_data)
 
 etl_dag = gold_scrape()
 
