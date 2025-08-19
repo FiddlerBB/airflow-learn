@@ -13,6 +13,7 @@ from airflow.decorators import dag, task
 from datetime import datetime, timedelta
 import boto3
 import os
+import pendulum
 
 logging.basicConfig(
     level=logging.INFO,
@@ -54,6 +55,7 @@ class GoldCrawler:
             gold_idx = cells[0].text().strip().lower().replace(' ', '_')
             buy_price = list(cells[1].text().strip().split())[0].replace(',', '')
             sell_price = list(cells[2].text().strip().split())[0].replace(',', '')
+            print(cells)
             yesterday_buy_price = cells[3].text().strip().replace(',', '')
             yesterday_sell_price = cells[4].text().strip().replace(',', '')
             # print(f"Buy Price: {buy_price}")
@@ -96,7 +98,8 @@ class GoldCrawler:
             pl.col("sell_out").cast(pl.Int64)
         ])
         print(df.head())
-    
+
+local_timezone = pendulum.timezone("Asia/Ho_Chi_Minh")
 default_args={
         'retries': 3,
         'retry_delay': timedelta(minutes=5),
@@ -105,8 +108,8 @@ default_args={
     }
 
 @dag(
-    start_date=datetime(2024, 1, 1),
-    schedule='0 9 * * *',
+    start_date=datetime(2024, 1, 1, tzinfo=local_timezone),
+    schedule='0 10,14,16 * * *',
     catchup=False,
     tags=['gold', 'taskflow'],
     default_args=default_args
